@@ -5,6 +5,20 @@ wget.callbacks.download_child_p = function(urlpos, parent, depth, start_url_pars
   return false
 end
 
+wget.callbacks.get_urls = function(file, url, is_css, iri)
+  local urls = {}
+  if string.match(url, "/sitemap.xml$") then
+    for l in io.lines(file) do
+      if string.match(l, "<loc>[^<]*</loc>") then
+        l = string.gsub(l, "%s*<loc>", "")
+        l = string.gsub(l, "</loc>", "")
+        table.insert(urls, {url=l})
+      end
+    end
+  end
+  return urls
+end
+
 wget.callbacks.httploop_result = function(url, err, http_stat)
   status_code = http_stat["statcode"]
 
