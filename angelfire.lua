@@ -1,10 +1,6 @@
 local url_count = 0
 local tries = 0
 
-wget.callbacks.download_child_p = function(urlpos, parent, depth, start_url_parsed, iri, verdict, reason)
-  return false
-end
-
 wget.callbacks.get_urls = function(file, url, is_css, iri)
   local urls = {}
   if string.match(url, "/sitemap.xml$") then
