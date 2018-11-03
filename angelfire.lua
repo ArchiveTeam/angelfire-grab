@@ -8,7 +8,7 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
       if string.match(l, "<loc>[^<]*</loc>") then
         l = string.gsub(l, "%s*<loc>", "")
         l = string.gsub(l, "</loc>", "")
-        table.insert(urls, {url=l})
+        table.insert(urls, {url=l, link_expect_html=1})
       end
     end
   end
