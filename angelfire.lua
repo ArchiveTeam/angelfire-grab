@@ -43,8 +43,8 @@ allowed = function(url, parenturl)
     return false
   end
 
-  if string.match(url, "^http://www.angelfire.com/[^/]+/[^/]+/") then
-    if users[string.match(url, "^http://www.angelfire.com/([^/]+/[^/]+)/")] == true then
+  if string.match(url, "^https?://www.angelfire.com/[^/]+/[^/]+/") then
+    if users[string.match(url, "^https?://www.angelfire.com/([^/]+/[^/]+)/")] == true then
       return true
     end
   end
