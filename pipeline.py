@@ -58,7 +58,7 @@ if not WGET_LUA:
 #
 # Update this each time you make a non-cosmetic change.
 # It will be added to the WARC files and reported to the tracker.
-VERSION = '20181105.02'
+VERSION = '20181105.03'
 USER_AGENT = 'ArchiveTeam'
 TRACKER_ID = 'angelfire'
 TRACKER_HOST = 'tracker.archiveteam.org'
@@ -173,7 +173,6 @@ class WgetArgs(object):
             '--truncate-output',
             '-e', 'robots=off',
             '--rotate-dns',
-            '--mirror',
             '--recursive', '--level=inf',
             '--no-parent',
             '--page-requisites',
@@ -198,6 +197,7 @@ class WgetArgs(object):
         if item_type == 'users':
             split_items = item_value.split(':')
             for x in split_items:
+                wget_args.extend(['--warc-header', 'angelfire-user: ' + x])
                 wget_args.append('http://www.angelfire.com/{}/'.format(x))
                 wget_args.append('http://www.angelfire.com/{}/sitemap.xml'.format(x))
         else:
