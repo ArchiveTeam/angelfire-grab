@@ -58,10 +58,10 @@ if not WGET_LUA:
 #
 # Update this each time you make a non-cosmetic change.
 # It will be added to the WARC files and reported to the tracker.
-VERSION = '20180916.01'
+VERSION = '20181105.01'
 USER_AGENT = 'ArchiveTeam'
 TRACKER_ID = 'angelfire'
-TRACKER_HOST = '127.0.0.1:9080'
+TRACKER_HOST = 'tracker.archiveteam.org'
 
 
 ###########################################################################
@@ -176,7 +176,6 @@ class WgetArgs(object):
             '--mirror',
             '--recursive', '--level=inf',
             '--no-parent',
-            '--reject-regex', '(www.angelfire.com\/adm\/ad\/|www.angelfire.com\/doc\/images\/track\/ot_noscript\.gif)', 
             '--page-requisites',
             '--timeout', '30',
             '--tries', 'inf',
@@ -199,7 +198,8 @@ class WgetArgs(object):
         if item_type == 'users':
             split_items = item_value.split(':')
             for x in split_items:
-                wget_args.append('www.angelfire.com/{}/sitemap.xml'.format(x))
+                wget_args.append('http://www.angelfire.com/{}/'.format(x))
+                wget_args.append('http://www.angelfire.com/{}/sitemap.xml'.format(x))
         else:
             raise Exception('Unknown item')
 

@@ -1,3 +1,6 @@
+dofile("urlcode.lua")
+dofile("table_show.lua")
+
 local item_type = os.getenv('item_type')
 local item_value = os.getenv('item_value')
 local item_dir = os.getenv('item_dir')
@@ -8,6 +11,16 @@ local tries = 0
 local downloaded = {}
 local addedtolist = {}
 local abortgrab = false
+
+local users = {}
+
+for user in string.gmatch("([^:]+)", item_value) do
+  users[user] = true
+end
+
+for ignore in io.open("ignore-list", "r"):lines() do
+  downloaded[ignore] = true
+end
 
 read_file = function(file)
   if file then
@@ -22,12 +35,20 @@ end
 
 allowed = function(url, parenturl)
   if string.match(url, "'+")
-     or string.match(url, "[<>\\]")
-     or string.match(url, "//$")
-     or string.match(url, "^https?://[^/]*facebook%.com")
-     or string.match(url, "^https?://[^/]*twitter%.com") then
+      or string.match(url, "[<>\\]")
+      or string.match(url, "//$")
+      or string.match(url, "^https?://[^/]*facebook%.com")
+      or string.match(url, "^https?://[^/]*twitter%.com")
+      or string.match(url, "^https?://www%.angelfire%.com/adm/ad/") then
     return false
   end
+
+  if string.match(url, "^http://www.angelfire.com/[^/]+/[^/]+/") then
+    if users[string.match(url, "^http://www.angelfire.com/([^/]+/[^/]+)/")] == true then
+      return true
+    end
+  end
+
   return false
 end
 
@@ -44,10 +65,8 @@ wget.callbacks.download_child_p = function(urlpos, parent, depth, start_url_pars
   -- they're added explicitly in get_urls. It would therefore miss all page requisites, for example.
   -- As a workaround, we let this function return true for a thread URL which has our made-up "x.ID"
   -- URL as a parent (which should only happen for the initial redirects).
-  if (
-       (downloaded[url] ~= true and addedtolist[url] ~= true)
-       and (allowed(url, parent["url"]) or html == 0)
-     ) then
+  if (downloaded[url] ~= true and addedtolist[url] ~= true)
+      and (allowed(url, parent["url"]) or html == 0) then
     addedtolist[url] = true
     return true
   end
@@ -58,15 +77,6 @@ end
 wget.callbacks.get_urls = function(file, url, is_css, iri)
   local urls = {}
   local html = nil
- if string.match(url, "/sitemap.xml$") then
-    for l in io.lines(file) do
-      if string.match(l, "<loc>[^<]*</loc>") then
-        l = string.gsub(l, "%s*<loc>", "")
-        l = string.gsub(l, "</loc>", "")
-        table.insert(urls, {url=l, link_expect_html=1})
-      end
-    end
-  end
   downloaded[url] = true
   
   local function check(urla)
@@ -111,6 +121,20 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
       check(string.match(url, "^(https?://.+/)")..newurl)
     end
   end
+
+-- Function allowed() now recognizes if a user is 'allowed', after which URLs
+-- will automatically be extracted in the part after this. No need for this
+-- piece of code.
+--
+--  if string.match(url, "/sitemap%.xml$") then
+--    for l in io.lines(file) do
+--      if string.match(l, "<loc>[^<]*</loc>") then
+--        l = string.gsub(l, "%s*<loc>", "")
+--        l = string.gsub(l, "</loc>", "")
+--        table.insert(urls, {url=l, link_expect_html=1})
+--      end
+--    end
+--  end
   
   if allowed(url, nil) then
     html = read_file(file)
