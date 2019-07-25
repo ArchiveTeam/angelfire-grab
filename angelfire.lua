@@ -50,6 +50,16 @@ allowed = function(url, parenturl)
     tested[s] = tested[s] + 1
   end
 
+  if string.match(url, "%?from=[0-9]+$") then
+    local date = string.match(url, "%?from=([0-9]+)$")
+    if string.len(date) == 8 then
+      local year = tonumber(string.match(date, "^([0-9][0-9][0-9][0-9])"))
+      if year < 1996 or year > 2019 then
+        return false
+      end
+    end
+  end
+
   if string.match(url, "^https?://[^/]*angelfire%.?[^%.]*%.com/[^/]+/[^/]+/") then
     if users[string.match(url, "^https?://[^/]*angelfire%.?[^%.]*%.com/([^/]+/[^/]+)/")] == true then
       return true
