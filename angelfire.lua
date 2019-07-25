@@ -1,5 +1,5 @@
-dofile("urlcode.lua")
 dofile("table_show.lua")
+dofile("urlcode.lua")
 
 local item_type = os.getenv('item_type')
 local item_value = os.getenv('item_value')
@@ -35,20 +35,27 @@ end
 
 allowed = function(url, parenturl)
   if string.match(url, "'+")
-      or string.match(url, "[<>\\]")
-      or string.match(url, "//$")
-      or string.match(url, "^https?://[^/]*facebook%.com")
-      or string.match(url, "^https?://[^/]*twitter%.com")
-      or string.match(url, "^https?://www%.angelfire%.com/adm/ad/") then
+      or string.match(url, "[<>\\%*%$;%^%[%],%(%){}]") then
     return false
   end
 
-  if string.match(url, "^https?://www.angelfire.com/[^/]+/[^/]+/") then
-    if users[string.match(url, "^https?://www.angelfire.com/([^/]+/[^/]+)/")] == true then
+  local tested = {}
+  for s in string.gmatch(url, "([^/]+)") do
+    if tested[s] == nil then
+      tested[s] = 0
+    end
+    if tested[s] == 6 then
+      return false
+    end
+    tested[s] = tested[s] + 1
+  end
+
+  if string.match(url, "^https?://www%.angelfire%.com/[^/]+/[^/]+/") then
+    if users[string.match(url, "^https?://www%.angelfire%.com/([^/]+/[^/]+)/")] == true then
       return true
     end
   end
-
+  
   return false
 end
 
@@ -56,36 +63,33 @@ wget.callbacks.download_child_p = function(urlpos, parent, depth, start_url_pars
   local url = urlpos["url"]["url"]
   local html = urlpos["link_expect_html"]
 
-  if string.match(url, "%[/") then
+  if string.match(url, "[<>\\%*%$;%^%[%],%(%){}]") then
     return false
   end
 
-  -- Because the post-redirect URL is already in `downloaded`, this function would return false for it,
-  -- which causes wget to not retrieve (or even consider retrieving) any URLs found on the page unless
-  -- they're added explicitly in get_urls. It would therefore miss all page requisites, for example.
-  -- As a workaround, we let this function return true for a thread URL which has our made-up "x.ID"
-  -- URL as a parent (which should only happen for the initial redirects).
   if (downloaded[url] ~= true and addedtolist[url] ~= true)
       and (allowed(url, parent["url"]) or html == 0) then
     addedtolist[url] = true
     return true
   end
-
+  
   return false
 end
 
 wget.callbacks.get_urls = function(file, url, is_css, iri)
   local urls = {}
   local html = nil
-  downloaded[url] = true
   
+  downloaded[url] = true
+
   local function check(urla)
     local origurl = url
-    local url = string.gsub(string.match(urla, "^([^#]+)"), "&amp;", "&")
-    if (downloaded[url] ~= true and addedtolist[url] ~= true)
-       and allowed(url, origurl) then
-      table.insert(urls, { url=url })
-      addedtolist[origurl] = true
+    local url = string.match(urla, "^([^#]+)")
+    local url_ = string.gsub(string.match(url, "^(.-)%.?$"), "&amp;", "&")
+    if (downloaded[url_] ~= true and addedtolist[url_] ~= true)
+        and allowed(url_, origurl) then
+      table.insert(urls, { url=url_ })
+      addedtolist[url_] = true
       addedtolist[url] = true
     end
   end
@@ -105,6 +109,8 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
       check(string.match(url, "^(https?://[^/]+)")..string.gsub(newurl, "\\", ""))
     elseif string.match(newurl, "^/") then
       check(string.match(url, "^(https?://[^/]+)")..newurl)
+    elseif string.match(newurl, "^%./") then
+      checknewurl(string.match(newurl, "^%.(.+)"))
     end
   end
 
@@ -112,37 +118,24 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
     if string.match(newurl, "^%?") then
       check(string.match(url, "^(https?://[^%?]+)")..newurl)
     elseif not (string.match(newurl, "^https?:\\?/\\?//?/?")
-       or string.match(newurl, "^[/\\]")
-       or string.match(newurl, "^[jJ]ava[sS]cript:")
-       or string.match(newurl, "^[mM]ail[tT]o:")
-       or string.match(newurl, "^vine:")
-       or string.match(newurl, "^android%-app:")
-       or string.match(newurl, "^%${")) then
+        or string.match(newurl, "^[/\\]")
+        or string.match(newurl, "^%./")
+        or string.match(newurl, "^[jJ]ava[sS]cript:")
+        or string.match(newurl, "^[mM]ail[tT]o:")
+        or string.match(newurl, "^vine:")
+        or string.match(newurl, "^android%-app:")
+        or string.match(newurl, "^ios%-app:")
+        or string.match(newurl, "^%${")) then
       check(string.match(url, "^(https?://.+/)")..newurl)
     end
   end
 
--- Function allowed() now recognizes if a user is 'allowed', after which URLs
--- will automatically be extracted in the part after this. No need for this
--- piece of code.
---
---  if string.match(url, "/sitemap%.xml$") then
---    for l in io.lines(file) do
---      if string.match(l, "<loc>[^<]*</loc>") then
---        l = string.gsub(l, "%s*<loc>", "")
---        l = string.gsub(l, "</loc>", "")
---        table.insert(urls, {url=l, link_expect_html=1})
---      end
---    end
---  end
-  
   if allowed(url, nil) then
     html = read_file(file)
-
-    for newurl in string.gmatch(html, '([^"]+)') do
+    for newurl in string.gmatch(string.gsub(html, "&quot;", '"'), '([^"]+)') do
       checknewurl(newurl)
     end
-    for newurl in string.gmatch(html, "([^']+)") do
+    for newurl in string.gmatch(string.gsub(html, "&#039;", "'"), "([^']+)") do
       checknewurl(newurl)
     end
     for newurl in string.gmatch(html, ">%s*([^<%s]+)") do
@@ -155,7 +148,7 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
       checknewshorturl(newurl)
     end
     for newurl in string.gmatch(html, ":%s*url%(([^%)]+)%)") do
-      check(newurl)
+      checknewurl(newurl)
     end
   end
 
@@ -164,11 +157,25 @@ end
 
 wget.callbacks.httploop_result = function(url, err, http_stat)
   status_code = http_stat["statcode"]
-
+  
   url_count = url_count + 1
   io.stdout:write(url_count .. "=" .. status_code .. " " .. url["url"] .. "  \n")
   io.stdout:flush()
 
+  if (status_code >= 300 and status_code <= 399) then
+    local newloc = string.match(http_stat["newloc"], "^([^#]+)")
+    if string.match(newloc, "^//") then
+      newloc = string.match(url["url"], "^(https?:)") .. string.match(newloc, "^//(.+)")
+    elseif string.match(newloc, "^/") then
+      newloc = string.match(url["url"], "^(https?://[^/]+)") .. newloc
+    elseif not string.match(newloc, "^https?://") then
+      newloc = string.match(url["url"], "^(https?://.+/)") .. newloc
+    end
+    if downloaded[newloc] == true or addedtolist[newloc] == true then
+      return wget.actions.EXIT
+    end
+  end
+  
   if (status_code >= 200 and status_code <= 399) then
     downloaded[url["url"]] = true
     downloaded[string.gsub(url["url"], "https?://", "http://")] = true
@@ -179,14 +186,16 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
     return wget.actions.ABORT
   end
   
-  if status_code >= 500 or
-    (status_code >= 400 and status_code ~= 404) or
-    status_code == 0 then
+  if status_code >= 500
+      or (status_code >= 400 and status_code ~= 404)
+      or status_code  == 0 then
     io.stdout:write("Server returned "..http_stat.statcode.." ("..err.."). Sleeping.\n")
     io.stdout:flush()
-    os.execute("sleep 1")
-    tries = tries + 1
-    if tries >= 5 then
+    local maxtries = 8
+    if not allowed(url["url"], nil) then
+        maxtries = 2
+    end
+    if tries > maxtries then
       io.stdout:write("\nI give up...\n")
       io.stdout:flush()
       tries = 0
@@ -196,6 +205,8 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
         return wget.actions.EXIT
       end
     else
+      os.execute("sleep " .. math.floor(math.pow(2, tries)))
+      tries = tries + 1
       return wget.actions.CONTINUE
     end
   end
