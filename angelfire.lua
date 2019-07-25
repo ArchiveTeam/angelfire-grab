@@ -14,7 +14,7 @@ local abortgrab = false
 
 local users = {}
 
-for user in string.gmatch("([^:]+)", item_value) do
+for user in string.gmatch(item_value, "([^:]+)") do
   users[user] = true
 end
 
@@ -50,8 +50,14 @@ allowed = function(url, parenturl)
     tested[s] = tested[s] + 1
   end
 
-  if string.match(url, "^https?://www%.angelfire%.com/[^/]+/[^/]+/") then
-    if users[string.match(url, "^https?://www%.angelfire%.com/([^/]+/[^/]+)/")] == true then
+  if string.match(url, "^https?://[^/]*angelfire%.?[^%.]*%.com/[^/]+/[^/]+/") then
+    if users[string.match(url, "^https?://[^/]*angelfire%.?[^%.]*%.com/([^/]+/[^/]+)/")] == true then
+      return true
+    end
+  end
+
+  if string.match(url, "^https?://[^/]*angelfire%.?[^%.]*%.com/[^/]+/") then
+    if users[string.match(url, "^https?://[^/]*angelfire%.?[^%.]*%.com/([^/]+)/")] == true then
       return true
     end
   end

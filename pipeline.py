@@ -197,8 +197,8 @@ class WgetArgs(object):
         if item_type == 'users':
             for s in item_value.split(':'):
                 wget_args.extend(['--warc-header', 'angelfire-user: ' + s])
-                wget_args.append('http://www.angelfire.com/{}/'.format(s))
                 wget_args.append('http://www.angelfire.com/{}/sitemap.xml'.format(s))
+                wget_args.append('http://www.angelfire.com/{}/'.format(s))
         else:
             raise Exception('Unknown item')
 
