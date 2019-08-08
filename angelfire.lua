@@ -44,7 +44,7 @@ allowed = function(url, parenturl)
     if tested[s] == nil then
       tested[s] = 0
     end
-    if tested[s] == 6 then
+    if tested[s] == 3 then
       return false
     end
     tested[s] = tested[s] + 1
@@ -141,12 +141,14 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
         or string.match(newurl, "^vine:")
         or string.match(newurl, "^android%-app:")
         or string.match(newurl, "^ios%-app:")
+        or string.match(newurl, "^ftp://")
+        or string.match(newurl, "^file://")
         or string.match(newurl, "^%${")) then
       check(string.match(url, "^(https?://.+/)")..newurl)
     end
   end
 
-  if allowed(url, nil) then
+  if allowed(url, nil) and status_code < 400 then
     html = read_file(file)
     for newurl in string.gmatch(string.gsub(html, "&quot;", '"'), '([^"]+)') do
       checknewurl(newurl)
